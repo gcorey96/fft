@@ -11,7 +11,7 @@ make -j
 
 mkdir run 
 cp ../SM6_TITANX/* ./run/
-cp /root/FFT_reference/test/*.txt ./run/
+cp ../test/*.txt ./run/
 
 #mkdir sm2
 #mkdir sm6
