@@ -27,18 +27,23 @@ void ReadFile(ComplexVec & a, std::string file_name);
 int main(int argc, char **argv){
 	parse_opt(argc, argv);
 
-  int N = 32768; 
+  int N = 32768;
+  //int N = 512;
   for(int iter = 0; iter < 1; iter++){
     ComplexVec h_a(N);
     ComplexVec res_ref(N);
     ReadFile(h_a, "Polynomial_Coeff.txt");
     ReadFile(res_ref, "Output_Coeff.txt");
+    //ReadFile(h_a, "input.txt");
+    //ReadFile(res_ref, "output.txt");
     std::complex<float>* d_alpha =
         (std::complex<float>*)refft::DeviceMalloc(h_a);
     refft::FftHelper::ExecStudentFft(d_alpha, N);
     refft::CudaHostSync();
     ComplexVec res = refft::D2H(d_alpha, N);
-    for (unsigned int i = 0; i < res.size(); i++) {
+    
+    //for (unsigned int i = 0; i < res.size(); i++) {
+    for (unsigned int i = 0; i < 32; i++) {
       if (!(abs(res_ref[i].real() - res[i].real()) < MAX(abs(0.001*res_ref[i].real()),0.001))) {
         std::cout << "Wrong real value in index " << i << std::endl;
         std::cout << "Reference : " << res_ref[i].real() << std::endl;
@@ -53,6 +58,12 @@ int main(int argc, char **argv){
         std::exit(0);
       }
     }
+    /*
+    //test
+    for (unsigned int i = 0; i < res.size(); i++) {
+      std::cout << "res[" << i << "] : " << res[i] << std::endl;
+    }
+    */
     refft::DeviceFree(d_alpha);
   }
   return 0;
