@@ -28,18 +28,19 @@ int main(int argc, char **argv){
 	parse_opt(argc, argv);
 
   int N = 32768;
-  int M = 64;
+  int M = 128;
   for(int iter = 0; iter < 1; iter++){
     ComplexVec h_a(N);
     ComplexVec res_ref(N);
-    ComplexVec t(M);
-    ComplexVec d(N);
+    ComplexVec c(M);
+    ComplexVec t(N);
     ReadFile(h_a, "Polynomial_Coeff.txt");
     ReadFile(res_ref, "Output_Coeff.txt");
     std::complex<float>* d_alpha = (std::complex<float>*)refft::DeviceMalloc(h_a);
-    std::complex<float>* twiddle_factor = (std::complex<float>*)refft::DeviceMalloc(t);
-    std::complex<float>* data = (std::complex<float>*)refft::DeviceMalloc(d);
-    refft::FftHelper::ExecStudentFft(d_alpha, twiddle_factor, data, N);
+    std::complex<float>* constant = (std::complex<float>*)refft::DeviceMalloc(c);
+    std::complex<float>* twiddle = (std::complex<float>*)refft::DeviceMalloc(t);
+
+    refft::FftHelper::ExecStudentFft(d_alpha, constant, twiddle, N);
     refft::CudaHostSync();
     ComplexVec res = refft::D2H(d_alpha, N);
     
