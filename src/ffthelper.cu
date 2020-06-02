@@ -20,11 +20,15 @@ namespace refft {
 // Modular multiplication a * N mod p
 // In: a[np][N]
 
+// TWIDDLE CONSTANT
+const int TWIDDLE_GRID_DIM = 512;
+const int TWIDDLE_BLOCK_DIM = 64;
+
 // TRANSPOSE CONSTANT
-const int T_SMEM_SIZE_1 = 16;
-const int T_BLOCK_ROW_1 = 16;
-const int T_SMEM_SIZE_2 = 16;
-const int T_BLOCK_ROW_2 = 16;
+const int T_SMEM_SIZE_1 = 8;
+const int T_BLOCK_ROW_1 = 8;
+const int T_SMEM_SIZE_2 = 8;
+const int T_BLOCK_ROW_2 = 8;
 const int T_nx = 256;
 const int T_ny = 128;
 
@@ -43,10 +47,11 @@ __device__ cuFloatComplex twiddle(const float expr) {
 }
 
 __device__ void twd(const int N, cuFloatComplex *x, cuFloatComplex *t) {
-  cuFloatComplex w1 = t[threadIdx.x * blockIdx.x];//twiddle(theta * threadIdx.x * blockIdx.x);
-  cuFloatComplex w2 = t[(threadIdx.x + BLOCK_DIM_1) * blockIdx.x];//twiddle(theta * (threadIdx.x + BLOCK_DIM_1) * blockIdx.x);
-  cuFloatComplex w3 = t[(threadIdx.x + 2 * BLOCK_DIM_1) * blockIdx.x];//twiddle(theta * (threadIdx.x + 2 * BLOCK_DIM_1) * blockIdx.x);
-  cuFloatComplex w4 = t[(threadIdx.x + 3 * BLOCK_DIM_1) * blockIdx.x];//twiddle(theta * (threadIdx.x + 3 * BLOCK_DIM_1) * blockIdx.x); 
+  cuFloatComplex w1 = t[threadIdx.x * blockIdx.x];//t[threadIdx.x *  blockIdx.x];
+  cuFloatComplex w  = t[BLOCK_DIM_1 * blockIdx.x];//t[BLOCK_DIM_1 * blockIdx.x];
+  cuFloatComplex w2 = cuCmulf(w, w1);
+  cuFloatComplex w3 = cuCmulf(w, w2);
+  cuFloatComplex w4 = cuCmulf(w, cuCmulf(w, w2));  
   __syncthreads();
 
   cuFloatComplex a = cuCmulf(w1, x[threadIdx.x]);
@@ -90,7 +95,6 @@ __device__ void fft_radix4_even(int n, cuFloatComplex *x, cuFloatComplex *consta
     cuFloatComplex temp2_odd = cuCmulf(j, cuCsubf(b, d));
     __syncthreads();
     
-    //add
     x[q + s * 4 * p] = cuCaddf(temp1_even, temp2_even);
     x[q + s * (4 * p + 1)] = cuCmulf(w1, cuCsubf(temp1_odd, temp2_odd));
     x[q + s * (4 * p + 2)] = cuCmulf(w2, cuCsubf(temp1_even, temp2_even));
@@ -196,16 +200,16 @@ __global__ void Transpose1(cuFloatComplex *a)
   int width_x = gridDim.x * T_SMEM_SIZE_1;
   int width_y = gridDim.y * T_SMEM_SIZE_1;
   
-  //for (int i = 0; i < T_SMEM_SIZE_1; i += T_BLOCK_ROW_1)
-  //  smem[threadIdx.y + i][threadIdx.x] = a[(y + i) * width_x + x];
-  smem[threadIdx.y][threadIdx.x] = a[y * width_x + x];
+  for (int i = 0; i < T_SMEM_SIZE_1; i += T_BLOCK_ROW_1)
+    smem[threadIdx.y + i][threadIdx.x] = a[(y + i) * width_x + x];
+  //smem[threadIdx.y][threadIdx.x] = a[y * width_x + x];
   __syncthreads();
 
   x = blockIdx.y * T_SMEM_SIZE_1 + threadIdx.x;
   y = blockIdx.x * T_SMEM_SIZE_1 + threadIdx.y;
 
-  //for (int i = 0; i < T_SMEM_SIZE_1; i += T_BLOCK_ROW_1)
-  a[y * width_y + x] = smem[threadIdx.x][threadIdx.y];
+  for (int i = 0; i < T_SMEM_SIZE_1; i += T_BLOCK_ROW_1)
+    a[(y + i) * width_y + x] = smem[threadIdx.x][threadIdx.y + i];
 }
 
 __global__ void Transpose2(cuFloatComplex *a)
@@ -249,16 +253,16 @@ __global__ void Fft(cuFloatComplex *a, const int m, const int N) {
 
 __global__ void FftWithTwiddle_Radix4(cuFloatComplex *a, cuFloatComplex *c, cuFloatComplex *t, const int N) {
   // shared memory
-  extern __shared__ cuFloatComplex x[];
+  __shared__ cuFloatComplex x[FFT1_SIZE];
   __shared__ cuFloatComplex constant[128];
 
   // global memory -> shared memory without shared memory bank conflict
-  x[threadIdx.x]                        = a[blockIdx.x * FFT1_SIZE + threadIdx.x];
-  x[threadIdx.x + BLOCK_DIM_1]          = a[blockIdx.x * FFT1_SIZE + BLOCK_DIM_1 + threadIdx.x];
-  x[threadIdx.x + 2 * BLOCK_DIM_1]      = a[blockIdx.x * FFT1_SIZE + 2 * BLOCK_DIM_1 + threadIdx.x];
-  x[threadIdx.x + 3 * BLOCK_DIM_1]      = a[blockIdx.x * FFT1_SIZE + 3 * BLOCK_DIM_1 + threadIdx.x];
-  constant[threadIdx.x]                 = c[threadIdx.x];
-  constant[threadIdx.x + blockDim.x]    = c[threadIdx.x + blockDim.x];
+  x[threadIdx.x]                         = a[blockIdx.x * FFT1_SIZE + threadIdx.x];
+  x[threadIdx.x + BLOCK_DIM_1]           = a[blockIdx.x * FFT1_SIZE + BLOCK_DIM_1 + threadIdx.x];
+  x[threadIdx.x + 2 * BLOCK_DIM_1]       = a[blockIdx.x * FFT1_SIZE + 2 * BLOCK_DIM_1 + threadIdx.x];
+  x[threadIdx.x + 3 * BLOCK_DIM_1]       = a[blockIdx.x * FFT1_SIZE + 3 * BLOCK_DIM_1 + threadIdx.x];
+  constant[threadIdx.x]                  = c[threadIdx.x];
+  constant[threadIdx.x + blockDim.x]     = c[threadIdx.x + blockDim.x];
   __syncthreads();
 
   // FFT + Twiddle
@@ -274,7 +278,7 @@ __global__ void FftWithTwiddle_Radix4(cuFloatComplex *a, cuFloatComplex *c, cuFl
 
 __global__ void FftWithoutTwiddle_Radix4(cuFloatComplex *a, cuFloatComplex *c) {
   // shared memory
-  extern __shared__ cuFloatComplex x[];
+  __shared__ cuFloatComplex x[FFT2_SIZE];
   __shared__ cuFloatComplex constant[128];
 
   // global memory -> shared memory without shared memory bank conflict
@@ -402,22 +406,6 @@ void FftHelper::ExecFft(std::complex<float> *a, int N) {
   CudaCheckError();
 }
 
-/*
-void FftHelper::ExecStudentFft(std::complex<float> *a, int N) {
-  //dim3 blockDim(refft::FFTblocksize);
-  //dim3 gridDim(N/2/refft::FFTblocksize);
-  dim3 blockDim1(256);
-  dim3 gridDim1(64);
-
-  bitReverse<<<gridDim1, blockDim1>>>(a,N);
-  for (int i = 1; i < N; i *= 2) {
-    FftStudent<<<gridDim1, blockDim1>>>((cuFloatComplex *)a, i, N);
-    CudaCheckError();
-  }
-  CudaCheckError();
-}
-*/
-
 void FftHelper::ExecStudentFft(std::complex<float> *a, std::complex<float> *c, std::complex<float> *t, int N){
   dim3 gridDim1(T_nx/T_SMEM_SIZE_1, T_ny/T_SMEM_SIZE_1, 1);
   dim3 blockDim1(T_SMEM_SIZE_1, T_BLOCK_ROW_1, 1);
@@ -430,14 +418,13 @@ void FftHelper::ExecStudentFft(std::complex<float> *a, std::complex<float> *c, s
   dim3 gridDim5(T_nx/T_SMEM_SIZE_1, T_ny/T_SMEM_SIZE_1, 1);
   dim3 blockDim5(T_SMEM_SIZE_1, T_BLOCK_ROW_1, 1);
   
-  Cal<<<32, 4>>>((cuFloatComplex *)c, 128);
-  Cal<<<512, 64>>>((cuFloatComplex *)t, N/2);
+  Cal<<<TWIDDLE_GRID_DIM, TWIDDLE_BLOCK_DIM>>>((cuFloatComplex *)t, N/2);
   Transpose1<<<gridDim1, blockDim1>>>((cuFloatComplex *)a);
-  cudaBindTexture(NULL, tex, t, 32768 * sizeof(float));
-  FftWithTwiddle_Radix4<<<gridDim2, blockDim2, BLOCK_DIM_1 * 4 * sizeof(cuFloatComplex)>>>((cuFloatComplex *)a, (cuFloatComplex *)c, (cuFloatComplex *)t, N);
+  cudaBindTexture(NULL, tex, t, N * sizeof(float));
+  FftWithTwiddle_Radix4<<<gridDim2, blockDim2>>>((cuFloatComplex *)a, (cuFloatComplex *)c, (cuFloatComplex *)t, N);
   CudaCheckError();
   Transpose2<<<gridDim3, blockDim3>>>((cuFloatComplex *)a);
-  FftWithoutTwiddle_Radix4<<<gridDim4, blockDim4, BLOCK_DIM_2 * 4 * sizeof(cuFloatComplex)>>>((cuFloatComplex *)a, (cuFloatComplex *)c);
+  FftWithoutTwiddle_Radix4<<<gridDim4, blockDim4>>>((cuFloatComplex *)a, (cuFloatComplex *)c);
   CudaCheckError();
   Transpose1<<<gridDim5, blockDim5>>>((cuFloatComplex *)a);
   CudaCheckError();
