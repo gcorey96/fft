@@ -28,22 +28,22 @@ int main(int argc, char **argv){
 	parse_opt(argc, argv);
 
   int N = 32768;
-  //int N = 512;
+  int M = 64;
   for(int iter = 0; iter < 1; iter++){
     ComplexVec h_a(N);
     ComplexVec res_ref(N);
+    ComplexVec t(M);
+    ComplexVec d(N);
     ReadFile(h_a, "Polynomial_Coeff.txt");
     ReadFile(res_ref, "Output_Coeff.txt");
-    //ReadFile(h_a, "input.txt");
-    //ReadFile(res_ref, "output.txt");
-    std::complex<float>* d_alpha =
-        (std::complex<float>*)refft::DeviceMalloc(h_a);
-    refft::FftHelper::ExecStudentFft(d_alpha, N);
+    std::complex<float>* d_alpha = (std::complex<float>*)refft::DeviceMalloc(h_a);
+    std::complex<float>* twiddle_factor = (std::complex<float>*)refft::DeviceMalloc(t);
+    std::complex<float>* data = (std::complex<float>*)refft::DeviceMalloc(d);
+    refft::FftHelper::ExecStudentFft(d_alpha, twiddle_factor, data, N);
     refft::CudaHostSync();
     ComplexVec res = refft::D2H(d_alpha, N);
     
-    //for (unsigned int i = 0; i < res.size(); i++) {
-    for (unsigned int i = 0; i < 32; i++) {
+    for (unsigned int i = 0; i < res.size(); i++) {
       if (!(abs(res_ref[i].real() - res[i].real()) < MAX(abs(0.001*res_ref[i].real()),0.001))) {
         std::cout << "Wrong real value in index " << i << std::endl;
         std::cout << "Reference : " << res_ref[i].real() << std::endl;
