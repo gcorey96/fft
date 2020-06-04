@@ -118,7 +118,7 @@ this term project:
 ## Report
 
 1. SW only approach: Describe your method of code optimization.
-```bash
+```
  => total_cycle = 26550 cycle
 
  Alogorithm
@@ -167,7 +167,7 @@ this term project:
   code를 짜려고 하였고 GridDimd이나 BlockDim과 같은 주요한 변수들은 Parameterize하여 사용하였습니다.
 
    그 외에도 여러 가지 Optimization을 하였는데 이 부분은 Cuda Code를 보시면 확인하실 수 있을 것으로 생각됩니다.
-```
+
    Reference
    
    1. A GPU Based Memory Optimized Parallel Method For FFT Implementation
@@ -179,7 +179,7 @@ this term project:
    7. GPU Fast Convolution via the Overlap-and-Save Method in Shared Memory
    8. High performance discrete Fourier transforms on graphics processors
    9. Memory Locality Exploitation Strategies for FFt on the CUDA Architecture
-
+```
 2. HW modification: Describe your suggested hardware, and the reasoning behind the modifications.
 
 * If you have not used the provided [docker image][docker_image], please specify the environment that you have worked in.
