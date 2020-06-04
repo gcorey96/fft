@@ -34,10 +34,13 @@ int main(int argc, char **argv){
     ComplexVec res_ref(N);
     ComplexVec c(M);
     ComplexVec t(N);
-    
+    /*
+    ComplexVec c(M);
+ 
     for(int i = 0; i < M; i++){
       c[i] = {cosf(i * M_PI /128), -sinf(i * M_PI/128)};
     }
+    */
 
     ReadFile(h_a, "Polynomial_Coeff.txt");
     ReadFile(res_ref, "Output_Coeff.txt");

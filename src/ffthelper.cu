@@ -108,7 +108,7 @@ __device__ void fft_radix4_even(int n, cuFloatComplex *x, cuFloatComplex *consta
 }
 
 // RADIX-4 STOCKHAM ALGORITHM FFT
-__device__ void fft_radix4_odd(int n, cuFloatComplex *x, cuFloatComplex *constant) {
+__device__ void fft_radix4_odd(int n, cuFloatComplex *x, cuFloatComplex *constant, cuFloatComplex *t) {
   cuFloatComplex j; j.x = 0; j.y = 1;
   int s = 1;
   int m = n;
@@ -159,16 +159,20 @@ __device__ void fft_radix4_odd(int n, cuFloatComplex *x, cuFloatComplex *constan
   
   // twiddle
   //const double theta = -2 * M_PI/N;
-  //cuFloatComplex w1 = twiddle(theta * threadIdx.x * blockIdx.x);
-  //cuFloatComplex w2 = twiddle(theta * (threadIdx.x + BLOCK_DIM_1) * blockIdx.x);
-  //cuFloatComplex w3 = twiddle(theta * (threadIdx.x + 2 * BLOCK_DIM_1) * blockIdx.x);
-  //cuFloatComplex w4 = twiddle(theta * (threadIdx.x + 3 * BLOCK_DIM_1) * blockIdx.x); 
-  
-  //temp1_even = cuCmulf(w1, temp1_even);
-  //temp2_even = cuCmulf(w2, temp2_even);
-  //temp1_odd = cuCmulf(w3, temp1_odd);
-  //temp2_odd = cuCmulf(w4, temp2_odd);
-  //__syncthreads();
+  cuFloatComplex w1 = t[threadIdx.x * blockIdx.x];//twiddle(theta * threadIdx.x * blockIdx.x);
+  cuFloatComplex w = t[BLOCK_DIM_1 * blockIdx.x];
+  __syncthreads();
+
+  cuFloatComplex w2 = cuCmulf(w1, w);//twiddle(theta * (threadIdx.x + BLOCK_DIM_1) * blockIdx.x);
+  cuFloatComplex w3 = cuCmulf(w2, w);//twiddle(theta * (threadIdx.x + 2 * BLOCK_DIM_1) * blockIdx.x);
+  cuFloatComplex w4 = cuCmulf(w, cuCmulf(w, w2));//twiddle(theta * (threadIdx.x + 3 * BLOCK_DIM_1) * blockIdx.x); 
+  __syncthreads();  
+
+  temp1_even = cuCmulf(w1, temp1_even);
+  temp2_even = cuCmulf(w2, temp2_even);
+  temp1_odd = cuCmulf(w3, temp1_odd);
+  temp2_odd = cuCmulf(w4, temp2_odd);
+  __syncthreads();
 
   x[threadIdx.x] =  temp1_even;
   x[threadIdx.x + (n >> 1)] = temp1_odd;
@@ -254,7 +258,7 @@ __global__ void Fft(cuFloatComplex *a, const int m, const int N) {
 __global__ void FftWithTwiddle_Radix4(cuFloatComplex *a, cuFloatComplex *c, cuFloatComplex *t, const int N) {
   // shared memory
   __shared__ cuFloatComplex x[FFT1_SIZE];
-  __shared__ cuFloatComplex constant[128];
+  __shared__ cuFloatComplex constant[64];
 
   // global memory -> shared memory without shared memory bank conflict
   x[threadIdx.x]                         = a[blockIdx.x * FFT1_SIZE + threadIdx.x];
@@ -266,8 +270,8 @@ __global__ void FftWithTwiddle_Radix4(cuFloatComplex *a, cuFloatComplex *c, cuFl
   __syncthreads();
 
   // FFT + Twiddle
-  fft_radix4_odd(FFT1_SIZE, x, constant);
-  twd(N, x, t);
+  fft_radix4_odd(FFT1_SIZE, x, constant, t);
+  //twd(N, x, t);
 
   // shared memory -> global memory without shared memory bank conflict
   a[blockIdx.x * FFT1_SIZE + threadIdx.x]                   = x[threadIdx.x];
@@ -279,7 +283,7 @@ __global__ void FftWithTwiddle_Radix4(cuFloatComplex *a, cuFloatComplex *c, cuFl
 __global__ void FftWithoutTwiddle_Radix4(cuFloatComplex *a, cuFloatComplex *c) {
   // shared memory
   __shared__ cuFloatComplex x[FFT2_SIZE];
-  __shared__ cuFloatComplex constant[128];
+  __shared__ cuFloatComplex constant[64];
 
   // global memory -> shared memory without shared memory bank conflict
   x[threadIdx.x]                   = a[blockIdx.x * FFT2_SIZE + threadIdx.x];
@@ -418,6 +422,7 @@ void FftHelper::ExecStudentFft(std::complex<float> *a, std::complex<float> *c, s
   dim3 gridDim5(T_nx/T_SMEM_SIZE_1, T_ny/T_SMEM_SIZE_1, 1);
   dim3 blockDim5(T_SMEM_SIZE_1, T_BLOCK_ROW_1, 1);
   
+  Cal<<<64, 1>>>((cuFloatComplex *)c, 128);
   Cal<<<TWIDDLE_GRID_DIM, TWIDDLE_BLOCK_DIM>>>((cuFloatComplex *)t, N/2);
   Transpose1<<<gridDim1, blockDim1>>>((cuFloatComplex *)a);
   cudaBindTexture(NULL, tex, t, N * sizeof(float));
