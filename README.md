@@ -156,8 +156,8 @@ this term project:
    32768개의 Coefficient FFT를 왜 128개 Coefficient들과 256개 Coefficient들에 대한 2차원 FFT로 radix-4 stockham
   algorithm을 이용하여 진행하였는지에 대해서는 곱해서 32768이 되는 2의 거듭제곱 쌍들은 ..., (32, 1024), (64, 512),
   (128, 256), (256, 128), ... 으로 많은 경우의 수가 존재하고 radix도 radix-2, radix-4, radix-8, ... 등이 존재합니다.
-  저는 radix-2, radix-4, radix-8를 적용하여 주어진 FFT를 각각의 2의 거듭제곱 쌍들로 이루어진 2차원 FFT를 수행하여 보았고,
-  그 중에서 total_cycle이 작은 것을 선택하였습니다.
+  저는 radix-2, radix-4, radix-8를 적용하여 주어진 FFT를 각각의 2의 거듭제곱 쌍들로 이루어진 2차원 FFT를 수행하여
+  보았고, 그 중에서 total_cycle이 작은 것을 선택하였습니다.
 
    또한, Cooley-Tuckey Algorithm이 아니라 Stockham Algorithm을 쓴 이유는 Stockham Algorithm은 bit reverse를 해주지
   않아도 되기 때문에 성능이 더 잘 나오는 것을 확인하였기 때문입니다. 
