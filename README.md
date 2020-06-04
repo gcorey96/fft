@@ -121,7 +121,7 @@ this term project:
 ```bash
  => total_cycle = 26550 cycle
 
- **Alogorithm**
+ Alogorithm
  
  0. Twiddle Factor 계산 (4931 cycle)
 
@@ -145,19 +145,40 @@ this term project:
   b. 32768개의 Twiddle Factor 계산 (2085 cycle)
 
    a는 총 64개의 complex exponential만 계산하면 되는 단계로 b와 비교해서 필요한 계산량이 훨씬 작지만 더 많은 
-cycle을 필요로 하고 있습니다. 계산량이 너무 적어 bandwidth를 비효율적으로 쓰는 등의 문제가 있는 것으로 생각 됩니다.
-  따라서 a 단계는 CPU에서 계산하고 이를 CUDA로 옮겨오는 것이 더 바람직한 구현이라고 생각합니다.
-  그러나 이번 과제에서는 CPU에서의 연산이 total cycle에 반영되지 않기 때문에 이렇게 구현할 수 없었습니다.
+  cycle을 필요로 하고 있습니다. 계산량이 너무 적어 bandwidth를 비효율적으로 쓰는 등의 문제가 있는 것으로 
+  생각됩니다.
+  따라서 a 단계는 CPU에서 계산하고 이를 CUDA로 옮겨오는 것이 더 바람직한 구현이겠지만 이번 과제에서는 CPU에서의 연산이
+  total cycle에 반영되지 않기 때문에 이렇게 구현할 수 없었습니다.
   
-   0번재 단계에서 계산한 complex exponential 값들은 각각 shared memomry와 texture memory에 올라가 2, 4 단계가 진행될 때
-  가져와서 사용하게 됩니다.
+   0번재 단계에서 계산한 complex exponential 값들은 각각 shared memomry와 texture memory에 올라가 2, 4 단계가
+  진행될 때 가져와서 사용하게 됩니다.
 
-   128개 Coefficient들과 256개 Coefficient들에 대한 FFT를 왜 radix-4 stockham algorithm을 진행하였는지에 대해서는
-  곱해서 32768이 되는 2의 거듭제곱 쌍들은 ..., (32, 1024), (64, 512), (128, 256), (256, 128), ... 으로 많은 경우의
-  수가 존재하고 radix도 radix-2, radix-4, radix-8, ... 등이 존재합니다. 저는 radix-2, radix-4, radix-8를 적용하여
-  주어진 FFT를 각각의 2의 거듭제곱 쌍들로 이루어진 2차원 FFT를 수행하여 보았고, 그 중에서 가장 성능이 좋은 것을 선택하였습니다.
+   32768개의 Coefficient FFT를 왜 128개 Coefficient들과 256개 Coefficient들에 대한 2차원 FFT로 radix-4 stockham
+  algorithm을 이용하여 진행하였는지에 대해서는 곱해서 32768이 되는 2의 거듭제곱 쌍들은 ..., (32, 1024), (64, 512),
+  (128, 256), (256, 128), ... 으로 많은 경우의 수가 존재하고 radix도 radix-2, radix-4, radix-8, ... 등이 존재합니다.
+  저는 radix-2, radix-4, radix-8를 적용하여 주어진 FFT를 각각의 2의 거듭제곱 쌍들로 이루어진 2차원 FFT를 수행하여 보았고,
+  그 중에서 total_cycle이 작은 것을 선택하였습니다.
+
+   또한, Cooley-Tuckey Algorithm이 아니라 Stockham Algorithm을 쓴 이유는 Stockham Algorithm은 bit reverse를 해주지
+  않아도 되기 때문에 성능이 더 잘 나오는 것을 확인하였기 때문입니다. 
   
+   만약, Coefficient가 32768개가 아니라 더 많거나 더 적다고 한다면 어떻게 2차원으로 쪼개서 계산해야 되는지에 대 
+  한 방법론은 알 수 없겠지만 적어도 Coefficient의 개수 2의 거듭제곱 꼴로 바뀌었을 때 최대한 Reconfigurable하게
+  code를 짜려고 하였고 GridDimd이나 BlockDim과 같은 주요한 변수들은 Parameterize하여 사용하였습니다.
+
+   그 외에도 여러 가지 Optimization을 하였는데 이 부분은 Cuda Code를 보시면 확인하실 수 있을 것으로 생각됩니다.
 ```
+   Reference
+   
+   1. A GPU Based Memory Optimized Parallel Method For FFT Implementation
+   2. Auto-tunning of Fast Fourier Transform on Graphics Processors
+   3. Bandwidth Intensive 3-D FFT kernel for GPUs using CUDA
+   4. Fast Computation of General Fourier Transforms on GPUs
+   5. FFT algorithms for vector computers
+   6. FFTs in external or hierarchical memory
+   7. GPU Fast Convolution via the Overlap-and-Save Method in Shared Memory
+   8. High performance discrete Fourier transforms on graphics processors
+   9. Memory Locality Exploitation Strategies for FFt on the CUDA Architecture
 2. HW modification: Describe your suggested hardware, and the reasoning behind the modifications.
 
 * If you have not used the provided [docker image][docker_image], please specify the environment that you have worked in.
