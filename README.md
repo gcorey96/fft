@@ -179,6 +179,7 @@ this term project:
    7. GPU Fast Convolution via the Overlap-and-Save Method in Shared Memory
    8. High performance discrete Fourier transforms on graphics processors
    9. Memory Locality Exploitation Strategies for FFt on the CUDA Architecture
+
 2. HW modification: Describe your suggested hardware, and the reasoning behind the modifications.
 
 * If you have not used the provided [docker image][docker_image], please specify the environment that you have worked in.
