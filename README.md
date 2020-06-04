@@ -118,7 +118,40 @@ this term project:
 ## Report
 
 1. SW only approach: Describe your method of code optimization.
+```bash
+ => tot_cycle = 26550 cycle
 
+ Alogorithm
+ 
+ 0. Twiddle Factor 계산 (4931 cycle)
+
+ 1. Transpose (2398 cycle)
+ 
+ 2. 256개의 row에 대한 128개 coefficient FFT (radix-4 stockham algorithm) + twiddle factor 곱하기 (9393 cycle)
+
+ 3. Transpose (2164 cycle)
+
+ 4. 128개의 row에 대한 256개 coefficient FFT (radix-4 stockham algorithm) (5866 cycle)
+
+ 5. Transpose (1798 cycle)
+ 
+  이번 과제에서는 Coefficient들에 대한 row major access만 가능한 것으로 간주하여 1, 5 단계의 transpose가 
+ 필요하지만 column major access로 Coefficient들을 주고받을 수 있다면 1, 3, 5단계의 transpose도 생략이 가능할 것으로
+ 보입니다.
+
+   0 단계에서 말하는 Twiddle Facotr 계산에는 2가지 종류가 있습니다.
+ 
+  a. 128개와 256개 Coefficient에 대한 FFT를 진행할 때에 필요한 complex exponential 계산 (2846 cycle)
+  
+  b. 32768개의 Twiddle Factor 계산 (2085 cycle)
+
+   a 단계는 총 64개의 complex exponential만 계산하면 되는 단계로 b 단계와 비교해서 필요한 계산량이 훨씬
+  작지만 더 많은 cycle을 필요로 하고 있습니다. 따라서 a 단계는 CPU에서 계산하고 이를 CUDA로 옮겨오는 것이
+  더 바람직한 구현이라고 생각합니다. 그러나 이번 과제에서는 CPU에서의 연산이 total cycle에 반영되지 않기 때문에
+  이렇게 구현할 수 없었습니다.
+  
+  
+```
 2. HW modification: Describe your suggested hardware, and the reasoning behind the modifications.
 
 * If you have not used the provided [docker image][docker_image], please specify the environment that you have worked in.
