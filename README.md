@@ -140,14 +140,13 @@ this term project:
 
    0번째 단계에서 말하는 Twiddle Facotr 계산에는 2가지 종류가 있습니다.
  
-  a. 128개와 256개 Coefficient에 대한 FFT를 진행할 때에 필요한 complex exponential 계산 (2846 cycle)
+  A. 128개와 256개 Coefficient에 대한 FFT를 진행할 때에 필요한 complex exponential 계산 (2846 cycle)
   
-  b. 32768개의 Twiddle Factor 계산 (2085 cycle)
+  B. 32768개의 Twiddle Factor 계산 (2085 cycle)
 
-   a는 총 64개의 complex exponential만 계산하면 되는 단계로 b와 비교해서 필요한 계산량이 훨씬 작지만 더 많은 
-  cycle을 필요로 하고 있습니다. 계산량이 너무 적어 bandwidth를 비효율적으로 쓰는 등의 문제가 있는 것으로 
-  생각됩니다.
-  따라서 a 단계는 CPU에서 계산하고 이를 CUDA로 옮겨오는 것이 더 바람직한 구현이겠지만 이번 과제에서는 CPU에서의 연산이
+   A는 총 64개의 complex exponential만 계산하면 되는 단계로 B와 비교해서 필요한 계산량이 훨씬 작지만 더 많은 
+  cycle을 필요로 하고 있습니다. 계산량이 너무 적어 bandwidth를 비효율적으로 쓰는 등의 문제가 있는 것으로 생각됩니다.
+   따라서 A는 CPU에서 계산하고 이를 CUDA로 옮겨오는 것이 더 바람직한 구현이겠지만 이번 과제에서는 CPU에서의 연산이
   total cycle에 반영되지 않기 때문에 이렇게 구현할 수 없었습니다.
   
    0번재 단계에서 계산한 complex exponential 값들은 각각 shared memomry와 texture memory에 올라가 2, 4 단계가
@@ -159,14 +158,16 @@ this term project:
   저는 radix-2, radix-4, radix-8를 적용하여 주어진 FFT를 각각의 2의 거듭제곱 쌍들로 이루어진 2차원 FFT를 수행하여
   보았고, 그 중에서 total_cycle이 작은 것을 선택하였습니다.
 
-   또한, Cooley-Tuckey Algorithm이 아니라 Stockham Algorithm을 쓴 이유는 Stockham Algorithm은 bit reverse를 해주지
-  않아도 되기 때문에 성능이 더 잘 나오는 것을 확인하였기 때문입니다. 
+   또한, Cooley-Tuckey Algorithm이 아니라 Stockham Algorithm을 쓴 이유는 Stockham Algorithm은 bit reverse를 따로
+  수행하지 않아 성능이 더 잘 나오는 것을 확인하였기 때문입니다. 이러한 사실은 Reference 논문들에서 찾아볼 수 있습니다. 
   
    만약, Coefficient가 32768개가 아니라 더 많거나 더 적다고 한다면 어떻게 2차원으로 쪼개서 계산해야 되는지에 대 
-  한 방법론은 알 수 없겠지만 적어도 Coefficient의 개수 2의 거듭제곱 꼴로 바뀌었을 때 최대한 Reconfigurable하게
-  code를 짜려고 하였고 GridDimd이나 BlockDim과 같은 주요한 변수들은 Parameterize하여 사용하였습니다.
+  한 방법론은 알 수 없겠지만 (Reference에 있는 Auto-tunning of Fast Fourier Transform on Graphics Processors을
+  참고한다면 어떻게 선택을 해야 할지에 대한 감 정도는 얻을 수 있을 것으로 생각됩니다.) 적어도 Coefficient의 개수가
+  2의 거듭제곱 꼴로 바뀌었을 때 최대한 Reconfigurable하도록 CUDA Code를 짜려고 노력하였고 GridDimd이나 BlockDim과
+  같은 주요한 변수들은 Parameterize하여 사용하였습니다.
 
-   그 외에도 여러 가지 Optimization을 하였는데 이 부분은 Cuda Code를 보시면 확인하실 수 있을 것으로 생각됩니다.
+   그 외에도 여러 가지 자잘한 Optimization을 하였는데 이 부분은 CUDA Code를 보시면 확인하실 수 있을 것으로 생각됩니다.
 
    Reference
    
