@@ -119,26 +119,24 @@ this term project:
 
 1. SW only approach: Describe your method of code optimization.
 ```
- => total_cycle = 26550 cycle
+ => total_cycle = 25902 cycle
 
  Alogorithm
  
- 0. Twiddle Factor 계산 (4931 cycle)
-
- 1. Transpose (2398 cycle)
+ 1. Twiddle Factor 계산
  
- 2. 256개의 row에 대한 128개 coefficient FFT (radix-4 stockham algorithm) + twiddle factor 곱하기 (9393 cycle)
+ 2. 256개의 row에 대한 128개 coefficient FFT (radix-4 stockham algorithm) + twiddle factor 곱하기
 
- 3. Transpose (2164 cycle)
+ 3. 128개의 row에 대한 256개 coefficient FFT (radix-4 stockham algorithm)
 
- 4. 128개의 row에 대한 256개 coefficient FFT (radix-4 stockham algorithm) (5866 cycle)
-
- 5. Transpose (1798 cycle)
+ 4. Transpose
  
-  이번 과제에서는 Coefficient들에 대한 row major access만 가능한 것으로 간주하여 1, 5 단계의 transpose가 필요하지만
- column major access로 Coefficient들을 주고받을 수 있다면 1, 5단계의 transpose도 생략이 가능할 것으로 보입니다.
+  이번 과제에서는 Coefficient들에 대한 row major access만 가능한 것으로 간주하여 4 단계의 transpose가 필요하지만
+ column major access로 Coefficient들을 주고받을 수 있다면 4단계의 transpose도 생략이 가능할 것으로 보입니다.
+ 또한, 2단계에서 global memory에 access 할때 stride 접근을 하게 되는데 만약 column major로 data가 들어올 수 있다면
+ 이 과정 역시 훨씬 적은 cycle을 소모할 것으로 보입니다.
 
-   0번째 단계에서 말하는 Twiddle Facotr 계산에는 2가지 종류가 있습니다.
+   1번째 단계에서 말하는 Twiddle Facotr 계산에는 2가지 종류가 있습니다.
  
   A. 128개와 256개 Coefficient에 대한 FFT를 진행할 때에 필요한 complex exponential 계산 (2846 cycle)
   
@@ -149,7 +147,7 @@ this term project:
   따라서 A는 CPU에서 계산하고 이를 CUDA로 옮겨오는 것이 더 바람직한 구현이겠지만 이번 과제에서는 CPU에서의 연산이
  total cycle에 반영되지 않기 때문에 이렇게 구현할 수 없었습니다.
   
-  0번재 단계에서 계산한 complex exponential 값들은 2, 4 단계가 진행될 때 가져와서 사용하게 됩니다.
+  1번재 단계에서 계산한 complex exponential 값들은 2, 3 단계가 진행될 때 가져와서 사용하게 됩니다.
 
   32768개의 Coefficient FFT를 왜 128개 Coefficient들과 256개 Coefficient들에 대한 2차원 FFT로 radix-4 stockham
  algorithm을 이용하여 진행하였는지에 대해서는 곱해서 32768이 되는 2의 거듭제곱 쌍들은 ..., (32, 1024), (64, 512),
